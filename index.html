@@ -28,7 +28,7 @@
         speed_data = [];
         height_data = [];
         for(var idx in data) {
-            var time = data[idx].time;
+            var time = data[idx].time * 1000;
             var ftime = parseInt(time);
             var speed = data[idx].speed;
             var fspeed = parseFloat(speed);
