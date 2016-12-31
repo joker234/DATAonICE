@@ -3,6 +3,14 @@
 <head>
   <title></title>
   <script type="text/javascript" src="jquery.min.js"></script>
+
+  <style type="text/css">
+      #map {
+        width: 800px;
+        height: 500px;
+      }
+  </style>
+  <link rel="stylesheet" type="text/css" href="ol.css">
 </head>
 <body>
 
@@ -14,11 +22,16 @@
 <h1>Wie hoch ist der ICE273 dabei?</h1>
 <div id="container_height"></div>
 
+<h1>Wo waren wir heute schon?</h1>
+<div id="map"></div>
+
+
 <h2>Was ist das?</h2>
 <p>Jede Minute frägt mein Laptop hier nach, was der Zug so tut: https://www.ombord.info/api/jsonp/position/. Die Messreihe wandert auf meinen Server und von dort direkt in deinen Browser.</p>
 
 <a href="https://github.com/you"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/652c5b9acfaddf3a9c326fa6bde407b87f7be0f4/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6f72616e67655f6666373630302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_orange_ff7600.png"></a>
 
+<script src="ol.js"></script>
 <script type="text/javascript" src="highstock.js"></script>
 <script>
   $(function () {
@@ -27,6 +40,7 @@
 
         speed_data = [];
         height_data = [];
+        geo_data = []
         for(var idx in data) {
             var time = data[idx].time * 1000;
             var ftime = parseInt(time);
@@ -34,8 +48,13 @@
             var fspeed = parseFloat(speed);
             var height = data[idx].altitude;
             var fheight = parseFloat(height);
+            var lat = data[idx].latitude;
+            var flat = parseFloat(lat);
+            var lon = data[idx].longitude;
+            var flon = parseFloat(lon);
             speed_data.push([ftime, fspeed]);
             height_data.push([ftime, fheight]);
+            geo_data.push([flon, flat]);
         }
 
         // Create the chart
@@ -77,6 +96,123 @@
                 }
             }]
         });
+
+
+
+
+        var init_coords = geo_data[geo_data.length - 1];
+        
+
+                // init map
+        var map = new ol.Map({
+            target: 'map',
+            layers: [
+                new ol.layer.Tile({
+                            source: new ol.source.OSM()
+                     // Street mapa -> osm
+                })
+            ],
+            // pos on map
+            view: new ol.View({
+                center: ol.proj.transform(init_coords, 'EPSG:4326', 'EPSG:3857'), 
+                zoom: 7
+            })
+        });
+    
+    
+    
+    
+        var vectorSource = new ol.source.Vector({
+            //create empty vector
+        });
+    
+        var markers = [];
+    
+        function AddMarkers() {
+            //create a bunch of icons and add to source vector
+            for (var i=0;i<geo_data.length;i++){
+                
+                var point = geo_data[i];
+                
+                var x= point[0]
+                var y= point[1]
+               
+                var iconFeature = new ol.Feature({
+
+                    geometry: new ol.geom.Point(ol.proj.transform([x,y], 'EPSG:4326',   'EPSG:3857')),
+                    name: 'Marker ' + i
+                });
+                markers[i]= ol.proj.transform([x,y], 'EPSG:4326',   'EPSG:3857');
+                vectorSource.addFeature(iconFeature);
+            }
+    
+            //create the style
+            var iconStyle = new ol.style.Style({
+                image: new ol.style.Icon(/** @type {olx.style.IconOptions} */ ({
+                    anchor: [0.5, 46],
+                    anchorXUnits: 'fraction',
+                    anchorYUnits: 'pixels',
+                    opacity: 0,
+                    src: 'http://upload.wikimedia.org/wikipedia/commons/a/ab/Warning_icon.png'
+                }))
+            });
+    
+    
+    
+            //add the feature vector to the layer vector, and apply a style to whole layer
+            var vectorLayer = new ol.layer.Vector({
+                source: vectorSource,
+                style: iconStyle
+            });
+            return vectorLayer;
+        }
+
+        var styleFunction = function(feature) {
+        var geometry = feature.getGeometry();
+        var styles = [
+          // linestring
+          new ol.style.Style({
+            stroke: new ol.style.Stroke({
+              color: '#009a93',
+              width: 4
+            })
+          })
+        ];
+
+        /*geometry.forEachSegment(function(start, end) {
+          var dx = end[0] - start[0];
+          var dy = end[1] - start[1];
+          var rotation = Math.atan2(dy, dx);
+          // arrows
+          styles.push(new ol.style.Style({
+            geometry: new ol.geom.Point(end),
+            image: new ol.style.Icon({
+              src: 'https://openlayers.org/en/v3.20.1/examples/data/arrow.png',
+              anchor: [0.75, 0.5],
+              rotateWithView: true,
+              rotation: -rotation
+            })
+          }));
+        });*/
+
+        return styles;
+      };
+        
+    
+        var layerMarkers = AddMarkers();
+
+var layerLines = new ol.layer.Vector({
+    source: new ol.source.Vector({
+        features: [new ol.Feature({
+            geometry: new ol.geom.LineString(markers, 'XY'),
+            name: 'Line'
+        })]
+    }),
+    style: styleFunction
+});
+        map.addLayer(layerMarkers);
+        map.addLayer(layerLines);
+
     });
 
 });
