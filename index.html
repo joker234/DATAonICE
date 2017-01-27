@@ -11,15 +11,16 @@
       }
   </style>
   <link rel="stylesheet" type="text/css" href="ol.css">
+  <meta charset="UTF-8">
 </head>
 <body>
 
 
-<h1>Wie schnell fährt der ICE273 so?</h1>
+<h1>Wie schnell fährt der ICE592 so?</h1>
 <div id="container_speed"></div>
 
 
-<h1>Wie hoch ist der ICE273 dabei?</h1>
+<h1>Wie hoch ist der ICE592 dabei?</h1>
 <div id="container_height"></div>
 
 <h1>Wo waren wir heute schon?</h1>
@@ -42,9 +43,9 @@
         height_data = [];
         geo_data = []
         for(var idx in data) {
-            var time = data[idx].time * 1000;
+            var time = data[idx].time * 1000 + (60 * 60 * 1000);
             var ftime = parseInt(time);
-            var speed = data[idx].speed;
+            var speed = data[idx].speed * 3.6;
             var fspeed = parseFloat(speed);
             var height = data[idx].altitude;
             var fheight = parseFloat(height);
@@ -68,6 +69,12 @@
                 text: 'Speed'
             },
 
+			yAxis: {
+				title: {
+					text: 'km/h'
+				}
+			},
+
             series: [{
                 name: 'Speed',
                 data: speed_data,
@@ -85,11 +92,17 @@
             },
 
             title: {
-                text: 'Speed'
+                text: 'Height'
             },
 
+			yAxis: {
+				title: {
+					text: 'm over sea level'
+				}
+			},
+
             series: [{
-                name: 'Speed',
+                name: 'Height',
                 data: height_data,
                 tooltip: {
                     valueDecimals: 2
@@ -108,7 +121,20 @@
             target: 'map',
             layers: [
                 new ol.layer.Tile({
-                            source: new ol.source.OSM()
+					source: new ol.source.OSM()
+					/*source: new ol.source.XYZ({
+						attributions : [
+               				ol.source.OSM.ATTRIBUTION,
+			                new ol.Attribution({
+        				        html : 'Style: <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA 2.0</a> <a href="http://www.openrailwaymap.org/">OpenRailwayMap</a> and OpenStreetMap'
+                			})
+						],
+            			url : 'http://{a-c}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png',
+						crossOrigin: null, //make it work inside canvas
+						tilePixelRatio: 2, //server returns 512px img for 256 tiles
+						maxZoom: 19, // XYZ's default is 18
+						opaque: true
+					})*/
                      // Street mapa -> osm
                 })
             ],
